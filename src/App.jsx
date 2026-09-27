@@ -606,21 +606,6 @@ function usePitchDetection() {
 
 /**
  * ============================================================================
- * CURATED LESSONS & SONGS DATA STRUCTURE
- * ============================================================================
- * Each lesson contains an array of notes:
- * {
- *   id: string,
- *   string: 1..6 (1 = High E4 top line, 6 = Low E2 bottom line),
- *   fret: number (0..20),
- *   timestamp: number (ms from lesson start),
- *   strumDirection: 'down' | 'up' | null,
- *   hint: string (displayed in CaptionBox when this note is active)
- * }
- */
-
-/**
- * ============================================================================
  * COMPONENT: <StrumArrowRow />
  * ============================================================================
  * Renders a horizontal lane directly above the 6 guitar strings displaying
@@ -637,8 +622,8 @@ function StrumArrowRow({
   return (
     <div className="relative w-full h-11 bg-[#14141b]/90 border-b border-white/10 overflow-hidden select-none">
       {/* Left Header Badge aligned with String Labels */}
-      <div className="absolute left-0 top-0 bottom-0 w-24 z-30 bg-[#14141b] border-r border-white/10 flex items-center justify-center px-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-300/80">
+      <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-24 z-30 bg-[#14141b] border-r border-white/10 flex items-center justify-center px-1 sm:px-2">
+        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-fuchsia-300/80">
           STRUM
         </span>
       </div>
@@ -704,13 +689,13 @@ function StringLines({ activeString, onPluckString }) {
               type="button"
               onClick={() => onPluckString(s.string, 0)}
               title={`Click to pluck Open String ${s.string} (${s.note} - ${s.freq.toFixed(1)} Hz)`}
-              className={`pointer-events-auto z-30 w-24 h-8 bg-[#16161f] border-r border-white/10 px-2.5 flex items-center justify-between transition-all group hover:bg-white/10 ${
+              className={`pointer-events-auto z-30 w-16 sm:w-24 h-8 bg-[#16161f] border-r border-white/10 px-1.5 sm:px-2.5 flex items-center justify-between transition-all group hover:bg-white/10 ${
                 isHighlighted ? "bg-cyan-950/80 border-r-cyan-400" : ""
               }`}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 <span
-                  className={`w-5 h-5 rounded-md text-[11px] font-bold flex items-center justify-center ${
+                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded-md text-[9px] sm:text-[11px] font-bold flex items-center justify-center shrink-0 ${
                     isHighlighted
                       ? "bg-cyan-400 text-slate-950 shadow-[0_0_10px_rgba(34,211,238,0.8)]"
                       : "bg-white/10 text-slate-300 group-hover:bg-fuchsia-500/30 group-hover:text-white"
@@ -718,11 +703,11 @@ function StringLines({ activeString, onPluckString }) {
                 >
                   {s.string}
                 </span>
-                <span className="text-xs font-bold tracking-tight text-white">
+                <span className="text-[10px] sm:text-xs font-bold tracking-tight text-white">
                   {s.name}
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 group-hover:text-cyan-300">
+              <span className="hidden sm:inline text-[10px] font-mono text-slate-400 group-hover:text-cyan-300">
                 {s.note}
               </span>
             </button>
@@ -1168,9 +1153,19 @@ function TabPlayer() {
   const activeNote = notes[currentNoteIndex] || null;
   const lessonComplete = currentNoteIndex >= totalNotes;
 
-  // Layout Constants for Scrolling Tab Track
-  const PLAYHEAD_X = 190; // Fixed cyan playhead X position in pixels (after 96px string label column)
-  const PIXELS_PER_MS = 0.19; // Horizontal scroll speed factor
+  // Layout Constants for Scrolling Tab Track — responsive to viewport width
+  // so the playhead lines up correctly with the narrower string-label column on phones
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1024,
+  );
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const isMobileViewport = viewportWidth < 640;
+  const PLAYHEAD_X = isMobileViewport ? 110 : 190; // After 64px label col on mobile, 96px on desktop
+  const PIXELS_PER_MS = isMobileViewport ? 0.14 : 0.19; // Slower scroll on small screens = more readable
 
   // Reset lesson progress helper
   const resetLesson = useCallback(() => {
@@ -1475,13 +1470,13 @@ function TabPlayer() {
           </div>
 
           {/* Lesson Picker Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1 sm:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {LESSONS.map((lesson, idx) => (
               <button
                 key={lesson.id}
                 type="button"
                 onClick={() => handleSelectLesson(idx)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   selectedLessonIdx === idx
                     ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-[0_0_15px_rgba(217,70,239,0.5)]"
                     : "bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5"
@@ -1686,7 +1681,7 @@ function TabPlayer() {
           />
 
           {/* 6-STRING SCROLLING TAB TRACK CANVAS */}
-          <div className="relative w-full h-72 sm:h-80 bg-gradient-to-b from-[#16161f] via-[#12121a] to-[#181822] overflow-hidden">
+          <div className="relative w-full h-56 sm:h-72 md:h-80 bg-gradient-to-b from-[#16161f] via-[#12121a] to-[#181822] overflow-hidden">
             {/* Subtle vertical beat grid lines */}
             {[
               0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
